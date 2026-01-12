@@ -1,0 +1,14 @@
+# PPE Dataset Scripts
+__pycache__/
+*.pyc
+*.pyo
+*.env
+
+# Virtual environment
+.venv/
+
+# IDE
+.vscode/
+.idea/
+
+# Note: API key now stored in ../.env - ensure .env is in root .gitignore
