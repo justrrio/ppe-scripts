@@ -5,6 +5,7 @@ Wrapper for Groq Vision API with batch processing support.
 import base64
 import json
 import os
+import time
 from groq import Groq
 
 try:

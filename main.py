@@ -14,7 +14,6 @@ from frame_extractor import extract_frames_from_videos
 from groq_client import GroqVisionClient
 from image_analyzer import analyze_and_filter_frames
 from gui_utils import select_folder
-from utils import sanitize_folder_name
 
 
 def print_banner():
@@ -79,10 +78,8 @@ def main(skip_analysis: bool = False):
     
     print(f"Output folder: {output_folder}")
     
-    # Create output subfolder based on input folder name
-    input_folder_name = os.path.basename(input_folder)
-    output_name = sanitize_folder_name(input_folder_name or "extracted")
-    final_output_dir = os.path.join(output_folder, output_name)
+    # Frames will be saved directly to the selected folder
+    final_output_dir = output_folder
     
     print(f"Frames will be saved to: {final_output_dir}")
     

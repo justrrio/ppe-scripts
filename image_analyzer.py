@@ -4,6 +4,7 @@ Analyzes images for PPE dataset suitability and organizes them.
 """
 import os
 import shutil
+import time
 
 try:
     from .config import BATCH_SIZE
@@ -84,7 +85,9 @@ def analyze_and_filter_frames(
         batch_num = (batch_start // BATCH_SIZE) + 1
         total_batches = (len(all_frames) + BATCH_SIZE - 1) // BATCH_SIZE
         
-        print(f"[Batch {batch_num}/{total_batches}] Processing {len(batch)} frames...")
+        # Show which model will be used
+        current_model = groq_client.get_stats()['current_model'].split('/')[-1]
+        print(f"[Batch {batch_num}/{total_batches}] Processing {len(batch)} frames... (Model: {current_model})")
         
         # Analyze batch
         results = groq_client.analyze_images_batch(batch)
@@ -120,6 +123,11 @@ def analyze_and_filter_frames(
                         stats["errors"] += 1
         
         print()
+        
+        # Delay 15 seconds between batches (except for last batch)
+        if batch_end < len(all_frames):
+            print(f"  ⏳ Waiting 15 seconds before next batch...")
+            time.sleep(15)
     
     print(f"{'='*60}")
     print("ANALYSIS COMPLETE")
