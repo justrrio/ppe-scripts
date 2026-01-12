@@ -1,6 +1,6 @@
 """
-Human Detection Module
-Orchestrates human detection using Groq AI and organizes frames.
+Image Analyzer Module
+Analyzes images for PPE dataset suitability and organizes them.
 """
 import os
 import shutil
@@ -15,15 +15,21 @@ except ImportError:
     from utils import ensure_dir
 
 
-def detect_and_organize_frames(
+def analyze_and_filter_frames(
     frames_dir: str,
     groq_client: GroqVisionClient = None,
     dry_run: bool = False
 ) -> dict:
     """
-    Process all frames in a directory to detect humans and organize files.
+    Analyze all frames in a directory for PPE dataset suitability.
     
-    Frames without humans are moved to a 'no-human' subfolder.
+    Images not suitable for PPE detection training are moved to 'not-suitable/' subfolder.
+    
+    Checks:
+    - Human presence
+    - PPE visibility
+    - Image quality (blur, exposure)
+    - Object size (too small/far)
     
     Args:
         frames_dir: Directory containing extracted frames
@@ -36,7 +42,7 @@ def detect_and_organize_frames(
     if groq_client is None:
         groq_client = GroqVisionClient()
     
-    # Get all frame images
+    # Get all frame images (exclude not-suitable subfolder)
     all_frames = sorted([
         os.path.join(frames_dir, f)
         for f in os.listdir(frames_dir)
@@ -46,15 +52,15 @@ def detect_and_organize_frames(
     
     if not all_frames:
         print("No frames found to process")
-        return {"total": 0, "with_human": 0, "no_human": 0, "errors": 0}
+        return {"total": 0, "suitable": 0, "not_suitable": 0, "errors": 0}
     
-    # Create no-human subfolder
-    no_human_dir = os.path.join(frames_dir, "no-human")
+    # Create not-suitable subfolder
+    not_suitable_dir = os.path.join(frames_dir, "not-suitable")
     if not dry_run:
-        ensure_dir(no_human_dir)
+        ensure_dir(not_suitable_dir)
     
     print(f"\n{'='*60}")
-    print("HUMAN DETECTION")
+    print("PPE DATASET SUITABILITY ANALYSIS")
     print(f"{'='*60}")
     print(f"Frames directory: {frames_dir}")
     print(f"Total frames: {len(all_frames)}")
@@ -65,8 +71,8 @@ def detect_and_organize_frames(
     
     stats = {
         "total": len(all_frames),
-        "with_human": 0,
-        "no_human": 0,
+        "suitable": 0,
+        "not_suitable": 0,
         "errors": 0,
         "moved_files": []
     }
@@ -86,8 +92,7 @@ def detect_and_organize_frames(
         # Process results
         for result in results:
             image_path = result["image_path"]
-            has_human = result.get("has_human", True)
-            confidence = result.get("confidence", 0.0)
+            is_suitable = result.get("is_suitable", True)
             error = result.get("error")
             
             filename = os.path.basename(image_path)
@@ -97,16 +102,16 @@ def detect_and_organize_frames(
                 print(f"  ⚠ {filename}: Error - {error}")
                 continue
             
-            if has_human:
-                stats["with_human"] += 1
-                print(f"  ✓ {filename}: Human detected (conf: {confidence:.2f})")
+            if is_suitable:
+                stats["suitable"] += 1
+                print(f"  ✓ {filename}: Suitable")
             else:
-                stats["no_human"] += 1
-                print(f"  ✗ {filename}: No human (conf: {confidence:.2f})")
+                stats["not_suitable"] += 1
+                print(f"  ✗ {filename}: Not suitable")
                 
-                # Move to no-human folder
+                # Move to not-suitable folder
                 if not dry_run:
-                    dest_path = os.path.join(no_human_dir, filename)
+                    dest_path = os.path.join(not_suitable_dir, filename)
                     try:
                         shutil.move(image_path, dest_path)
                         stats["moved_files"].append(filename)
@@ -117,47 +122,13 @@ def detect_and_organize_frames(
         print()
     
     print(f"{'='*60}")
-    print("DETECTION COMPLETE")
+    print("ANALYSIS COMPLETE")
     print(f"{'='*60}")
-    print(f"Total frames processed: {stats['total']}")
-    print(f"  With humans: {stats['with_human']}")
-    print(f"  Without humans: {stats['no_human']} (moved to no-human/)")
+    print(f"Total frames analyzed: {stats['total']}")
+    print(f"  Suitable for dataset: {stats['suitable']}")
+    print(f"  Not suitable: {stats['not_suitable']} (moved to not-suitable/)")
     print(f"  Errors: {stats['errors']}")
     print(f"API calls made: {groq_client.get_stats()['total_requests']}")
     print(f"{'='*60}\n")
     
     return stats
-
-
-def restore_no_human_frames(frames_dir: str) -> int:
-    """
-    Restore frames from no-human folder back to main folder.
-    Useful for re-processing or undoing detection.
-    
-    Args:
-        frames_dir: Main frames directory
-        
-    Returns:
-        Number of files restored
-    """
-    no_human_dir = os.path.join(frames_dir, "no-human")
-    
-    if not os.path.exists(no_human_dir):
-        print("No 'no-human' folder found")
-        return 0
-    
-    files = [f for f in os.listdir(no_human_dir) if f.endswith(('.jpg', '.jpeg', '.png'))]
-    
-    restored = 0
-    for filename in files:
-        src = os.path.join(no_human_dir, filename)
-        dest = os.path.join(frames_dir, filename)
-        try:
-            shutil.move(src, dest)
-            restored += 1
-        except Exception as e:
-            print(f"Error restoring {filename}: {e}")
-    
-    print(f"Restored {restored} files from no-human folder")
-    return restored
-

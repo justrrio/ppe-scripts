@@ -1,7 +1,8 @@
 """
-PPE Frame Extraction Pipeline - Main Entry Point
+PPE Frame Extraction & Analysis Pipeline
 
-Extract frames from videos and detect human presence using Groq AI.
+Extract frames from videos and analyze them for PPE dataset suitability.
+Unsuitable images are automatically moved to 'not-suitable/' folder.
 
 Usage:
     python main.py
@@ -11,7 +12,7 @@ import os
 from config import FRAME_INTERVAL_SECONDS
 from frame_extractor import extract_frames_from_videos
 from groq_client import GroqVisionClient
-from human_detector import detect_and_organize_frames
+from image_analyzer import analyze_and_filter_frames
 from gui_utils import select_folder
 from utils import sanitize_folder_name
 
@@ -20,8 +21,8 @@ def print_banner():
     """Print application banner."""
     print()
     print("=" * 60)
-    print(" PPE FRAME EXTRACTION PIPELINE")
-    print(" Extract frames and detect human presence using Groq AI")
+    print(" PPE FRAME EXTRACTION & ANALYSIS PIPELINE")
+    print(" Extract frames and filter for PPE dataset training")
     print("=" * 60)
     print()
 
@@ -32,12 +33,12 @@ def confirm_action(message: str) -> bool:
     return response in ('y', 'yes')
 
 
-def main(skip_detection: bool = False):
+def main(skip_analysis: bool = False):
     """
     Main entry point - GUI mode for folder selection.
     
     Args:
-        skip_detection: If True, skip human detection step
+        skip_analysis: If True, skip PPE suitability analysis
     """
     print_banner()
     
@@ -108,18 +109,14 @@ def main(skip_detection: bool = False):
     frame_count = len([f for f in os.listdir(frames_dir) if f.endswith('.jpg')])
     print(f"\nExtracted {frame_count} frames to: {frames_dir}")
     
-    # Step 4: Human detection (optional)
-    if not skip_detection:
-        if not confirm_action("\nProceed with human detection using Groq AI?"):
-            print("Frame extraction complete. Human detection skipped.")
+    # Step 4: PPE Suitability Analysis (optional)
+    if not skip_analysis:
+        if not confirm_action("\nProceed with PPE suitability analysis using Groq AI?"):
+            print("Frame extraction complete. Analysis skipped.")
             return
         
-        print("\n" + "=" * 60)
-        print("DETECTING HUMANS")
-        print("=" * 60)
-        
         client = GroqVisionClient()
-        stats = detect_and_organize_frames(frames_dir, client)
+        stats = analyze_and_filter_frames(frames_dir, client)
         
         print("\n" + "=" * 60)
         print(" PIPELINE COMPLETE")
@@ -128,8 +125,8 @@ def main(skip_detection: bool = False):
 Summary:
   Videos processed: {len(videos)}
   Frames extracted: {frame_count}
-  Frames with humans: {stats['with_human']}
-  Frames without humans: {stats['no_human']} (moved to no-human/)
+  Suitable for dataset: {stats['suitable']}
+  Not suitable: {stats['not_suitable']} (moved to not-suitable/)
   Errors: {stats['errors']}
   
 Output location: {frames_dir}
