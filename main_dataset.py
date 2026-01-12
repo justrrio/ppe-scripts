@@ -13,7 +13,6 @@ import sys
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from Scripts.config import EXTRACTED_DIR
 from Scripts.groq_client import GroqVisionClient
 from Scripts.dataset_analyzer import analyze_and_organize_frames
 from Scripts.gui_utils import select_folder
@@ -42,8 +41,7 @@ def main():
     # Select source folder
     print("Select folder containing extracted frames...")
     source_folder = select_folder(
-        title="Select Folder with Extracted Frames",
-        initial_dir=EXTRACTED_DIR if os.path.exists(EXTRACTED_DIR) else None
+        title="Select Folder with Extracted Frames"
     )
     
     if not source_folder:

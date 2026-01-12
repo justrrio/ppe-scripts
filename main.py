@@ -8,12 +8,11 @@ Usage:
 """
 import os
 import sys
-import shutil
 
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from Scripts.config import RAW_VIDEO_DIR, FRAME_INTERVAL_SECONDS, EXTRACTED_DIR
+from Scripts.config import FRAME_INTERVAL_SECONDS
 from Scripts.frame_extractor import extract_frames_from_videos
 from Scripts.groq_client import GroqVisionClient
 from Scripts.human_detector import detect_and_organize_frames
@@ -49,8 +48,7 @@ def main(skip_detection: bool = False):
     # Step 1: Select input folder
     print("Step 1: Select INPUT folder containing videos...")
     input_folder = select_folder(
-        title="Select Input Folder (containing videos)",
-        initial_dir=RAW_VIDEO_DIR if os.path.exists(RAW_VIDEO_DIR) else None
+        title="Select Input Folder (containing videos)"
     )
     
     if not input_folder:
@@ -75,8 +73,7 @@ def main(skip_detection: bool = False):
     # Step 2: Select output folder
     print("\nStep 2: Select OUTPUT folder for extracted frames...")
     output_folder = select_folder(
-        title="Select Output Folder (for extracted frames)",
-        initial_dir=EXTRACTED_DIR if os.path.exists(EXTRACTED_DIR) else None
+        title="Select Output Folder (for extracted frames)"
     )
     
     if not output_folder:
@@ -104,16 +101,9 @@ def main(skip_detection: bool = False):
     
     frames_dir = extract_frames_from_videos(
         videos,
-        output_folder_name=output_name,
+        output_dir=final_output_dir,
         frame_interval_sec=FRAME_INTERVAL_SECONDS
     )
-    
-    # Move frames to user-selected output folder if needed
-    if frames_dir and frames_dir != final_output_dir:
-        if os.path.exists(final_output_dir):
-            shutil.rmtree(final_output_dir)
-        shutil.move(frames_dir, final_output_dir)
-        frames_dir = final_output_dir
     
     if not frames_dir or not os.path.exists(frames_dir):
         print("Frame extraction failed!")

@@ -4,20 +4,19 @@ Extracts frames from videos at specified intervals.
 """
 import cv2
 import os
-import math
 
 try:
-    from .config import FRAME_INTERVAL_SECONDS, EXTRACTED_DIR
-    from .utils import get_video_prefix, sanitize_folder_name, format_duration, ensure_dir
+    from .config import FRAME_INTERVAL_SECONDS
+    from .utils import format_duration, ensure_dir
 except ImportError:
-    from config import FRAME_INTERVAL_SECONDS, EXTRACTED_DIR
-    from utils import get_video_prefix, sanitize_folder_name, format_duration, ensure_dir
+    from config import FRAME_INTERVAL_SECONDS
+    from utils import format_duration, ensure_dir
 
 
 def extract_frames_from_video(
     video_path: str,
     output_dir: str,
-    frame_interval_sec: int = FRAME_INTERVAL_SECONDS
+    frame_interval_sec: float = FRAME_INTERVAL_SECONDS
 ) -> int:
     """
     Extract frames from a single video at specified interval.
@@ -76,15 +75,15 @@ def extract_frames_from_video(
 
 def extract_frames_from_videos(
     video_paths: list[str],
-    output_folder_name: str = None,
-    frame_interval_sec: int = FRAME_INTERVAL_SECONDS
+    output_dir: str,
+    frame_interval_sec: float = FRAME_INTERVAL_SECONDS
 ) -> str:
     """
     Extract frames from multiple videos into a single output folder.
     
     Args:
         video_paths: List of video file paths
-        output_folder_name: Name for output folder (auto-generated if None)
+        output_dir: Directory to save extracted frames
         frame_interval_sec: Extract one frame every N seconds
         
     Returns:
@@ -94,14 +93,7 @@ def extract_frames_from_videos(
         print("No videos to process")
         return None
     
-    # Determine output folder name from first video's prefix
-    if output_folder_name is None:
-        first_video = os.path.basename(video_paths[0])
-        prefix = get_video_prefix(first_video)
-        output_folder_name = sanitize_folder_name(prefix or "extracted")
-    
     # Create output directory
-    output_dir = os.path.join(EXTRACTED_DIR, output_folder_name)
     ensure_dir(output_dir)
     
     print(f"\n{'='*60}")
@@ -126,25 +118,3 @@ def extract_frames_from_videos(
     print(f"{'='*60}\n")
     
     return output_dir
-
-
-if __name__ == "__main__":
-    # Test with a single short video
-    import sys
-    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    
-    from Scripts.video_collector import collect_similar_videos
-    
-    print("=== Frame Extractor Test ===\n")
-    
-    # Use a short test video
-    test_ref = "Steadfast_Camera 01_20251212171535_20251212171625.mp4"
-    print(f"Testing with: {test_ref}\n")
-    
-    videos = collect_similar_videos(test_ref)
-    if videos:
-        # Only use the first (shortest) video for testing
-        output = extract_frames_from_videos([videos[0]], "test_extraction", frame_interval_sec=5)
-        print(f"\nFrames saved to: {output}")
-    else:
-        print("No matching videos found")

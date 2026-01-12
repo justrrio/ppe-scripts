@@ -160,33 +160,3 @@ def restore_not_suitable_frames(frames_dir: str) -> int:
     print(f"Restored {restored} files from not-suitable folder")
     return restored
 
-
-if __name__ == "__main__":
-    # Test the dataset analyzer
-    import sys
-    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    
-    from Scripts.config import EXTRACTED_DIR
-    
-    print("=== PPE Dataset Analyzer Test ===\n")
-    
-    # Find any existing extracted folder with images
-    test_dir = None
-    if os.path.exists(EXTRACTED_DIR):
-        for folder in os.listdir(EXTRACTED_DIR):
-            folder_path = os.path.join(EXTRACTED_DIR, folder)
-            if os.path.isdir(folder_path):
-                # Check if folder has jpg files
-                jpgs = [f for f in os.listdir(folder_path) if f.endswith('.jpg')]
-                if jpgs:
-                    test_dir = folder_path
-                    break
-    
-    if test_dir:
-        # Do a dry run first
-        print(f"Testing with folder: {os.path.basename(test_dir)}")
-        print("Running in DRY RUN mode (no files will be moved)\n")
-        stats = analyze_and_organize_frames(test_dir, dry_run=True)
-    else:
-        print(f"No extracted folders with images found in: {EXTRACTED_DIR}")
-        print("Run frame extraction first")
