@@ -93,9 +93,13 @@ def main(skip_analysis: bool = False):
     print("EXTRACTING FRAMES")
     print("=" * 60)
     
+    # Get input folder name for frame naming
+    input_folder_name = os.path.basename(input_folder)
+    
     frames_dir = extract_frames_from_videos(
         videos,
         output_dir=final_output_dir,
+        input_folder_name=input_folder_name,
         frame_interval_sec=FRAME_INTERVAL_SECONDS
     )
     
