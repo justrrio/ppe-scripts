@@ -5,17 +5,13 @@ Analyze extracted frames to determine if they are suitable
 for training PPE (Personal Protective Equipment) object detection models.
 
 Usage:
-    python -m main_dataset
+    python main_dataset.py
 """
 import os
-import sys
 
-# Add parent directory to path for imports
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from Scripts.groq_client import GroqVisionClient
-from Scripts.dataset_analyzer import analyze_and_organize_frames
-from Scripts.gui_utils import select_folder
+from groq_client import GroqVisionClient
+from dataset_analyzer import analyze_and_organize_frames
+from gui_utils import select_folder
 
 
 def print_banner():

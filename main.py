@@ -4,20 +4,16 @@ PPE Frame Extraction Pipeline - Main Entry Point
 Extract frames from videos and detect human presence using Groq AI.
 
 Usage:
-    python -m main
+    python main.py
 """
 import os
-import sys
 
-# Add parent directory to path for imports
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from Scripts.config import FRAME_INTERVAL_SECONDS
-from Scripts.frame_extractor import extract_frames_from_videos
-from Scripts.groq_client import GroqVisionClient
-from Scripts.human_detector import detect_and_organize_frames
-from Scripts.gui_utils import select_folder
-from Scripts.utils import sanitize_folder_name
+from config import FRAME_INTERVAL_SECONDS
+from frame_extractor import extract_frames_from_videos
+from groq_client import GroqVisionClient
+from human_detector import detect_and_organize_frames
+from gui_utils import select_folder
+from utils import sanitize_folder_name
 
 
 def print_banner():
