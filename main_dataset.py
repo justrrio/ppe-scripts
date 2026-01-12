@@ -5,9 +5,9 @@ This script analyzes extracted frames to determine if they are suitable
 for training PPE (Personal Protective Equipment) object detection models.
 
 Usage:
-    python -m Scripts.main_dataset <source_folder>
-    python -m Scripts.main_dataset Extracted/Winposh_Regent_Camera_01
-    python -m Scripts.main_dataset "c:\\full\\path\\to\\folder"
+    python -m main_dataset                    # Interactive mode
+    python -m main_dataset --gui              # GUI mode (folder picker)
+    python -m main_dataset <source_folder>    # Direct mode
 """
 import os
 import sys
@@ -19,6 +19,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from Scripts.config import EXTRACTED_DIR
 from Scripts.groq_client import GroqVisionClient
 from Scripts.dataset_analyzer import analyze_and_organize_frames, restore_not_suitable_frames
+from Scripts.gui_utils import select_folder
 
 
 def print_banner():
@@ -142,6 +143,49 @@ Output location: {source_folder}
 """)
 
 
+def gui_mode(dry_run: bool = False):
+    """
+    GUI mode - select source folder using file dialog.
+    
+    Args:
+        dry_run: If True, only print what would be done
+    """
+    print_banner()
+    print("GUI MODE - Select folder using dialog window\n")
+    
+    print("Select folder containing extracted frames...")
+    source_folder = select_folder(
+        title="Select Folder with Extracted Frames",
+        initial_dir=EXTRACTED_DIR if os.path.exists(EXTRACTED_DIR) else None
+    )
+    
+    if not source_folder:
+        print("No folder selected. Exiting.")
+        return
+    
+    print(f"Selected: {source_folder}")
+    
+    # Count frames
+    frame_count = len([f for f in os.listdir(source_folder) 
+                      if f.endswith('.jpg') and os.path.isfile(os.path.join(source_folder, f))])
+    
+    if frame_count == 0:
+        print(f"No .jpg images found in: {source_folder}")
+        return
+    
+    print(f"Images to analyze: {frame_count}")
+    print(f"Dry run: {dry_run}")
+    
+    if not confirm_action("\nProceed with PPE dataset suitability analysis?"):
+        print("Aborted.")
+        return
+    
+    client = GroqVisionClient()
+    stats = analyze_and_organize_frames(source_folder, client, dry_run=dry_run)
+    
+    print(f"\nDone! Suitable: {stats['suitable']}, Not suitable: {stats['not_suitable']}")
+
+
 def cli():
     """Command-line interface with arguments."""
     parser = argparse.ArgumentParser(
@@ -151,6 +195,11 @@ def cli():
         "source",
         nargs="?",
         help="Source folder containing images to analyze"
+    )
+    parser.add_argument(
+        "--gui",
+        action="store_true",
+        help="Use GUI mode with folder picker dialog"
     )
     parser.add_argument(
         "--dry-run",
@@ -182,6 +231,11 @@ def cli():
             return
         
         restore_not_suitable_frames(source)
+        return
+    
+    # GUI mode
+    if args.gui:
+        gui_mode(dry_run=args.dry_run)
         return
     
     # Interactive mode if no source specified

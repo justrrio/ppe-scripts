@@ -5,7 +5,7 @@ import os
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
-load_dotenv(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.env'))
+load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env'))
 
 # Groq API Configuration
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
@@ -18,13 +18,13 @@ MODELS = {
 
 # Processing settings
 BATCH_SIZE = 5  # Max images per Groq API request
-FRAME_INTERVAL_SECONDS = 60  # Extract 1 frame every 60 seconds
+FRAME_INTERVAL_SECONDS = 0.2  # 1 / 5 (5 FPS)
 
 # Directory paths (relative to project root)
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # CONFIGURABLE: Change this to switch between different video sources
-VIDEO_SUBFOLDER = "Kapal 2"
+VIDEO_SUBFOLDER = "Kapal 1 (Mas Kael)"
 
 RAW_VIDEO_DIR = os.path.join(PROJECT_ROOT, "Raw", VIDEO_SUBFOLDER)
 EXTRACTED_DIR = os.path.join(PROJECT_ROOT, "Extracted")

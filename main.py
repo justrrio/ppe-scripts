@@ -6,18 +6,25 @@ This script provides the main command-line interface for:
 2. Extracting frames at specified intervals
 3. Detecting humans in frames using Groq AI
 4. Organizing frames based on human presence
+
+Usage:
+    python -m main                           # Interactive mode
+    python -m main --gui                     # GUI mode (folder picker)
+    python -m main "video_reference.mp4"     # Quick mode
 """
 import os
 import sys
+import argparse
 
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from Scripts.config import RAW_VIDEO_DIR, FRAME_INTERVAL_SECONDS
+from Scripts.config import RAW_VIDEO_DIR, FRAME_INTERVAL_SECONDS, EXTRACTED_DIR
 from Scripts.video_collector import collect_similar_videos, get_video_info, list_available_prefixes
 from Scripts.frame_extractor import extract_frames_from_videos
 from Scripts.groq_client import GroqVisionClient
 from Scripts.human_detector import detect_and_organize_frames
+from Scripts.gui_utils import select_folder
 
 
 def print_banner():
@@ -194,11 +201,135 @@ def quick_run(reference: str, skip_detection: bool = False):
         print(f"\nExtraction complete! {frame_count} frames saved to {frames_dir}")
 
 
-if __name__ == "__main__":
-    # Check for command line arguments
-    if len(sys.argv) > 1:
-        reference_file = sys.argv[1]
-        skip_detect = "--skip-detection" in sys.argv
-        quick_run(reference_file, skip_detection=skip_detect)
+def gui_mode(skip_detection: bool = False):
+    """
+    GUI mode - select input folder and output folder using file dialogs.
+    
+    Args:
+        skip_detection: If True, skip human detection step
+    """
+    print_banner()
+    print("GUI MODE - Select folders using dialog windows\n")
+    
+    # Select input folder
+    print("Step 1: Select INPUT folder containing videos...")
+    input_folder = select_folder(
+        title="Select Input Folder (containing videos)",
+        initial_dir=RAW_VIDEO_DIR if os.path.exists(RAW_VIDEO_DIR) else None
+    )
+    
+    if not input_folder:
+        print("No input folder selected. Exiting.")
+        return
+    
+    print(f"Input folder: {input_folder}")
+    
+    # List videos in folder
+    videos = sorted([
+        os.path.join(input_folder, f)
+        for f in os.listdir(input_folder)
+        if f.lower().endswith(('.mp4', '.avi', '.mkv', '.mov'))
+    ])
+    
+    if not videos:
+        print(f"No video files found in: {input_folder}")
+        return
+    
+    print(f"Found {len(videos)} video files")
+    
+    # Select output folder
+    print("\nStep 2: Select OUTPUT folder for extracted frames...")
+    output_folder = select_folder(
+        title="Select Output Folder (for extracted frames)",
+        initial_dir=EXTRACTED_DIR if os.path.exists(EXTRACTED_DIR) else None
+    )
+    
+    if not output_folder:
+        print("No output folder selected. Exiting.")
+        return
+    
+    print(f"Output folder: {output_folder}")
+    
+    # Get output folder name from first video
+    first_video = os.path.basename(videos[0])
+    from Scripts.utils import get_video_prefix, sanitize_folder_name
+    prefix = get_video_prefix(first_video)
+    output_name = sanitize_folder_name(prefix or "extracted")
+    final_output_dir = os.path.join(output_folder, output_name)
+    
+    print(f"Frames will be saved to: {final_output_dir}")
+    
+    # Confirm
+    if not confirm_action("\nProceed with frame extraction?"):
+        print("Aborted.")
+        return
+    
+    # Extract frames
+    frames_dir = extract_frames_from_videos(
+        videos,
+        output_folder_name=output_name,
+        frame_interval_sec=FRAME_INTERVAL_SECONDS
+    )
+    
+    # Override output directory to use selected folder
+    import shutil
+    if frames_dir and frames_dir != final_output_dir:
+        if os.path.exists(final_output_dir):
+            shutil.rmtree(final_output_dir)
+        shutil.move(frames_dir, final_output_dir)
+        frames_dir = final_output_dir
+    
+    if not frames_dir or not os.path.exists(frames_dir):
+        print("Frame extraction failed!")
+        return
+    
+    frame_count = len([f for f in os.listdir(frames_dir) if f.endswith('.jpg')])
+    print(f"\nExtracted {frame_count} frames to: {frames_dir}")
+    
+    # Human detection
+    if not skip_detection:
+        if not confirm_action("\nProceed with human detection using Groq AI?"):
+            print("Frame extraction complete. Human detection skipped.")
+            return
+        
+        client = GroqVisionClient()
+        stats = detect_and_organize_frames(frames_dir, client)
+        print(f"\nComplete! {stats['with_human']} with humans, {stats['no_human']} without")
+    else:
+        print(f"\nExtraction complete! {frame_count} frames saved to {frames_dir}")
+
+
+def cli():
+    """Command-line interface with argparse."""
+    parser = argparse.ArgumentParser(
+        description="PPE Frame Extraction Pipeline - Extract and analyze video frames"
+    )
+    parser.add_argument(
+        "reference",
+        nargs="?",
+        help="Video reference filename for batch processing"
+    )
+    parser.add_argument(
+        "--gui",
+        action="store_true",
+        help="Use GUI mode with folder picker dialogs"
+    )
+    parser.add_argument(
+        "--skip-detection",
+        action="store_true",
+        help="Skip human detection step (extraction only)"
+    )
+    
+    args = parser.parse_args()
+    
+    if args.gui:
+        gui_mode(skip_detection=args.skip_detection)
+    elif args.reference:
+        quick_run(args.reference, skip_detection=args.skip_detection)
     else:
         main()
+
+
+if __name__ == "__main__":
+    cli()
+
